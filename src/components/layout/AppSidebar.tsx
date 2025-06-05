@@ -69,7 +69,7 @@ export function AppSidebar() {
             <DollarSign className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">FinanceApp</h1>
+            <h1 className="text-xl font-bold text-white">ExperienceApp</h1>
             <p className="text-sm text-gray-400">Controle Financeiro</p>
           </div>
         </div>
