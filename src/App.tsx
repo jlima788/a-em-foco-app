@@ -6,7 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import AuthGuard from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import ContasFixas from "./pages/ContasFixas";
 import Ganhos from "./pages/Ganhos";
 import CartoesCredito from "./pages/CartoesCredito";
@@ -23,23 +25,40 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SidebarProvider>
-          <div className="min-h-screen flex w-full">
-            <AppSidebar />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/contas-fixas" element={<ContasFixas />} />
-                <Route path="/ganhos" element={<Ganhos />} />
-                <Route path="/cartoes-credito" element={<CartoesCredito />} />
-                <Route path="/mural-sonhos" element={<MuralSonhos />} />
-                <Route path="/dividas" element={<Dividas />} />
-                <Route path="/investimentos" element={<Investimentos />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
-        </SidebarProvider>
+        <Routes>
+          <Route 
+            path="/auth" 
+            element={
+              <AuthGuard requireAuth={false}>
+                <Auth />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/*" 
+            element={
+              <AuthGuard requireAuth={true}>
+                <SidebarProvider>
+                  <div className="min-h-screen flex w-full">
+                    <AppSidebar />
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/contas-fixas" element={<ContasFixas />} />
+                        <Route path="/ganhos" element={<Ganhos />} />
+                        <Route path="/cartoes-credito" element={<CartoesCredito />} />
+                        <Route path="/mural-sonhos" element={<MuralSonhos />} />
+                        <Route path="/dividas" element={<Dividas />} />
+                        <Route path="/investimentos" element={<Investimentos />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </main>
+                  </div>
+                </SidebarProvider>
+              </AuthGuard>
+            } 
+          />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

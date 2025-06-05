@@ -1,4 +1,3 @@
-
 import { Home, CreditCard, TrendingUp, PiggyBank, Target, AlertTriangle, DollarSign } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -12,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import UserMenu from "./UserMenu";
 
 const menuItems = [
   {
@@ -64,14 +64,17 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-gray-800">
       <SidebarHeader className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">ExperienceApp</h1>
+              <p className="text-sm text-gray-400">Controle Financeiro</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">ExperienceApp</h1>
-            <p className="text-sm text-gray-400">Controle Financeiro</p>
-          </div>
+          <UserMenu />
         </div>
       </SidebarHeader>
       <SidebarContent>
