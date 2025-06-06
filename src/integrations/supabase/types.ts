@@ -9,6 +9,396 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      cartoes_credito: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          id: string
+          limite: number
+          limite_usado: number | null
+          melhor_dia_compra: number | null
+          nome: string
+          updated_at: string
+          user_id: string
+          vencimento_fatura: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          id?: string
+          limite: number
+          limite_usado?: number | null
+          melhor_dia_compra?: number | null
+          nome: string
+          updated_at?: string
+          user_id: string
+          vencimento_fatura?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          id?: string
+          limite?: number
+          limite_usado?: number | null
+          melhor_dia_compra?: number | null
+          nome?: string
+          updated_at?: string
+          user_id?: string
+          vencimento_fatura?: number | null
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          type: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          type: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      contas_fixas: {
+        Row: {
+          categoria_id: string | null
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+          valor: number
+          vencimento: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          valor: number
+          vencimento: number
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          valor?: number
+          vencimento?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_fixas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contribuicoes_sonhos: {
+        Row: {
+          created_at: string
+          data_contribuicao: string
+          id: string
+          observacoes: string | null
+          sonho_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_contribuicao?: string
+          id?: string
+          observacoes?: string | null
+          sonho_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data_contribuicao?: string
+          id?: string
+          observacoes?: string | null
+          sonho_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribuicoes_sonhos_sonho_id_fkey"
+            columns: ["sonho_id"]
+            isOneToOne: false
+            referencedRelation: "mural_sonhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dividas: {
+        Row: {
+          created_at: string
+          credor: string
+          data_inicio: string
+          data_vencimento: string | null
+          id: string
+          observacoes: string | null
+          status: string | null
+          taxa_juros: number | null
+          updated_at: string
+          user_id: string
+          valor_pago: number | null
+          valor_restante: number | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          credor: string
+          data_inicio: string
+          data_vencimento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string | null
+          taxa_juros?: number | null
+          updated_at?: string
+          user_id: string
+          valor_pago?: number | null
+          valor_restante?: number | null
+          valor_total: number
+        }
+        Update: {
+          created_at?: string
+          credor?: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string | null
+          taxa_juros?: number | null
+          updated_at?: string
+          user_id?: string
+          valor_pago?: number | null
+          valor_restante?: number | null
+          valor_total?: number
+        }
+        Relationships: []
+      }
+      ganhos: {
+        Row: {
+          categoria_id: string | null
+          created_at: string
+          data_recebimento: string
+          descricao: string
+          id: string
+          observacoes: string | null
+          recorrente: boolean | null
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string
+          data_recebimento: string
+          descricao: string
+          id?: string
+          observacoes?: string | null
+          recorrente?: boolean | null
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string
+          data_recebimento?: string
+          descricao?: string
+          id?: string
+          observacoes?: string | null
+          recorrente?: boolean | null
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ganhos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gastos_cartao: {
+        Row: {
+          cartao_id: string
+          categoria_id: string | null
+          created_at: string
+          data_compra: string
+          descricao: string
+          id: string
+          observacoes: string | null
+          parcela_atual: number | null
+          parcelas: number | null
+          valor: number
+        }
+        Insert: {
+          cartao_id: string
+          categoria_id?: string | null
+          created_at?: string
+          data_compra: string
+          descricao: string
+          id?: string
+          observacoes?: string | null
+          parcela_atual?: number | null
+          parcelas?: number | null
+          valor: number
+        }
+        Update: {
+          cartao_id?: string
+          categoria_id?: string | null
+          created_at?: string
+          data_compra?: string
+          descricao?: string
+          id?: string
+          observacoes?: string | null
+          parcela_atual?: number | null
+          parcelas?: number | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_cartao_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_cartao_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investimentos: {
+        Row: {
+          created_at: string
+          data_investimento: string
+          id: string
+          nome: string
+          observacoes: string | null
+          rentabilidade_esperada: number | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_atual: number | null
+          valor_investido: number
+          vencimento: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_investimento: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          rentabilidade_esperada?: number | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor_atual?: number | null
+          valor_investido: number
+          vencimento?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_investimento?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          rentabilidade_esperada?: number | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_atual?: number | null
+          valor_investido?: number
+          vencimento?: string | null
+        }
+        Relationships: []
+      }
+      mural_sonhos: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          data_meta: string | null
+          descricao: string | null
+          id: string
+          imagem_url: string | null
+          prioridade: string | null
+          status: string | null
+          titulo: string
+          updated_at: string
+          user_id: string
+          valor_atual: number | null
+          valor_meta: number
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          data_meta?: string | null
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          prioridade?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string
+          user_id: string
+          valor_atual?: number | null
+          valor_meta: number
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          data_meta?: string | null
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          prioridade?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+          valor_atual?: number | null
+          valor_meta?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
