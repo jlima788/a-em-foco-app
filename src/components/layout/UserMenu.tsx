@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -11,11 +12,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, CreditCard, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const UserMenu = () => {
   const { user, signOut } = useAuth();
+  const { subscribed, subscription_tier, subscription_end, checkSubscription, openCustomerPortal } = useSubscription();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
@@ -34,6 +36,14 @@ const UserMenu = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleRefreshSubscription = () => {
+    checkSubscription();
+    toast({
+      title: "Status atualizado",
+      description: "Status da assinatura verificado.",
+    });
   };
 
   if (!user) return null;
@@ -58,7 +68,7 @@ const UserMenu = () => {
             Perfil do Usuário
           </SheetTitle>
           <SheetDescription className="text-gray-400">
-            Gerencie sua conta e configurações
+            Gerencie sua conta e assinatura
           </SheetDescription>
         </SheetHeader>
         
@@ -71,11 +81,42 @@ const UserMenu = () => {
             </Avatar>
             <div>
               <p className="text-white font-medium">{user.email}</p>
-              <p className="text-gray-400 text-sm">Usuário</p>
+              <p className="text-gray-400 text-sm">
+                {subscribed ? `${subscription_tier} - Ativo` : 'Sem assinatura'}
+              </p>
             </div>
           </div>
+
+          {subscribed && (
+            <div className="bg-green-900/20 border border-green-700 p-3 rounded-lg">
+              <p className="text-green-400 text-sm font-medium">Assinatura Ativa</p>
+              <p className="text-green-300 text-xs">
+                Renovação: {subscription_end ? new Date(subscription_end).toLocaleDateString('pt-BR') : 'N/A'}
+              </p>
+            </div>
+          )}
           
           <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+              onClick={handleRefreshSubscription}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar Status
+            </Button>
+            
+            {subscribed && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+                onClick={openCustomerPortal}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Gerenciar Assinatura
+              </Button>
+            )}
+            
             <Button
               variant="ghost"
               className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
