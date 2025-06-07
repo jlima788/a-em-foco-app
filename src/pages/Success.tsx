@@ -22,8 +22,16 @@ const Success = () => {
       });
     }, 2000);
 
-    return () => clearTimeout(timer);
-  }, [checkSubscription, toast]);
+    // Auto redirect to dashboard after 3 seconds
+    const redirectTimer = setTimeout(() => {
+      navigate('/');
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(redirectTimer);
+    };
+  }, [checkSubscription, toast, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
@@ -38,7 +46,7 @@ const Success = () => {
             Pagamento Realizado!
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Seu acesso premium foi ativado com sucesso. Bem-vindo ao ExperienceApp!
+            Seu acesso premium foi ativado com sucesso. Redirecionando para o dashboard...
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -60,6 +68,10 @@ const Success = () => {
             Ir para o Dashboard
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
+          
+          <p className="text-center text-gray-400 text-xs">
+            Você será redirecionado automaticamente em alguns segundos...
+          </p>
         </CardContent>
       </Card>
     </div>
