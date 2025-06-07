@@ -41,10 +41,55 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    
+    // First, try to find customer by email
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unpaid state");
+      logStep("No customer found by email, checking payment sessions directly");
+      
+      // If no customer found, check for any successful payment sessions
+      // This handles cases where payments were made without creating a customer record
+      const allSessions = await stripe.checkout.sessions.list({
+        limit: 100,
+      });
+      
+      const userSessions = allSessions.data.filter(session => 
+        session.customer_details?.email === user.email ||
+        session.customer_email === user.email
+      );
+      
+      const hasSuccessfulPayment = userSessions.some(session => 
+        session.payment_status === "paid" && session.mode === "payment"
+      );
+      
+      if (hasSuccessfulPayment) {
+        logStep("Found successful payment session without customer record", { 
+          sessionCount: userSessions.length,
+          userEmail: user.email 
+        });
+        
+        await supabaseClient.from("subscribers").upsert({
+          email: user.email,
+          user_id: user.id,
+          stripe_customer_id: null,
+          subscribed: true,
+          subscription_tier: "Premium",
+          subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'email' });
+        
+        return new Response(JSON.stringify({
+          subscribed: true,
+          subscription_tier: "Premium",
+          subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      
+      logStep("No customer and no successful payment sessions found, updating unpaid state");
       await supabaseClient.from("subscribers").upsert({
         email: user.email,
         user_id: user.id,
@@ -63,16 +108,24 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Check for successful payment sessions instead of active subscriptions
+    // Check for successful payment sessions for this customer
     const sessions = await stripe.checkout.sessions.list({
       customer: customerId,
-      status: "complete",
       limit: 10,
     });
     
-    const hasSuccessfulPayment = sessions.data.some(session => 
-      session.payment_status === "paid" && session.mode === "payment"
-    );
+    logStep("Retrieved customer sessions", { sessionCount: sessions.data.length });
+    
+    const hasSuccessfulPayment = sessions.data.some(session => {
+      const isSuccess = session.payment_status === "paid" && session.mode === "payment";
+      logStep("Checking session", { 
+        sessionId: session.id, 
+        paymentStatus: session.payment_status, 
+        mode: session.mode,
+        isSuccess 
+      });
+      return isSuccess;
+    });
 
     let subscriptionTier = null;
     let subscriptionEnd = null;
@@ -81,9 +134,9 @@ serve(async (req) => {
       subscriptionTier = "Premium";
       // For one-time payments, we can set a long expiration or make it permanent
       // Here setting it for 1 year from the payment date
-      const latestPayment = sessions.data[0];
+      const latestPayment = sessions.data.find(s => s.payment_status === "paid" && s.mode === "payment");
       subscriptionEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year from now
-      logStep("Successful payment found", { sessionId: latestPayment.id, endDate: subscriptionEnd });
+      logStep("Successful payment found", { sessionId: latestPayment?.id, endDate: subscriptionEnd });
     } else {
       logStep("No successful payment found");
     }
