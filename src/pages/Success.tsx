@@ -13,12 +13,12 @@ const Success = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check subscription status after successful payment
+    // Check payment status after successful payment
     const timer = setTimeout(() => {
       checkSubscription();
       toast({
         title: "Pagamento Processado!",
-        description: "Sua assinatura foi ativada com sucesso.",
+        description: "Seu acesso premium foi ativado com sucesso.",
       });
     }, 2000);
 
@@ -38,7 +38,7 @@ const Success = () => {
             Pagamento Realizado!
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Sua assinatura foi ativada com sucesso. Bem-vindo ao ExperienceApp!
+            Seu acesso premium foi ativado com sucesso. Bem-vindo ao ExperienceApp!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -49,6 +49,7 @@ const Success = () => {
               <li>• Controlar cartões de crédito</li>
               <li>• Acompanhar investimentos</li>
               <li>• Criar seu mural dos sonhos</li>
+              <li>• Acesso vitalício ao sistema</li>
             </ul>
           </div>
           

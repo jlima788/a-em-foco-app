@@ -49,16 +49,24 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
     
+    // Create one-time payment session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1RWjWIQ1RuMnC1lk4IktubsK",
+          price_data: {
+            currency: "brl",
+            product_data: {
+              name: "ExperienceApp - Acesso Premium",
+              description: "Acesso completo ao sistema de controle financeiro"
+            },
+            unit_amount: 4999, // R$ 49,99 em centavos
+          },
           quantity: 1,
         },
       ],
-      mode: "subscription",
+      mode: "payment", // Changed from "subscription" to "payment"
       success_url: `${origin}/success`,
       cancel_url: `${origin}/`,
     });

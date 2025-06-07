@@ -26,20 +26,20 @@ export const useSubscription = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
+      const { data, error } = await supabase.functions.invoke('check-payment', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
       if (error) {
-        console.error('Error checking subscription:', error);
+        console.error('Error checking payment:', error);
         setSubscriptionData({ subscribed: false });
       } else {
         setSubscriptionData(data);
       }
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error('Error checking payment:', error);
       setSubscriptionData({ subscribed: false });
     } finally {
       setLoading(false);
@@ -50,7 +50,7 @@ export const useSubscription = () => {
     if (!user || !session) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado para fazer uma assinatura.",
+        description: "Você precisa estar logado para fazer uma compra.",
         variant: "destructive"
       });
       return;
@@ -87,7 +87,7 @@ export const useSubscription = () => {
     if (!user || !session) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado para gerenciar sua assinatura.",
+        description: "Você precisa estar logado para gerenciar seu pagamento.",
         variant: "destructive"
       });
       return;

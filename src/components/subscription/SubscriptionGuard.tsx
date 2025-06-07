@@ -20,7 +20,7 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-lg">Verificando assinatura...</div>
+        <div className="text-white text-lg">Verificando pagamento...</div>
       </div>
     );
   }
@@ -36,15 +36,15 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
               </div>
             </div>
             <CardTitle className="text-white text-2xl">
-              Assinatura Necessária
+              Acesso Premium Necessário
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Para acessar o ExperienceApp, você precisa de uma assinatura ativa.
+              Para acessar o ExperienceApp, você precisa adquirir o acesso premium.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-white font-semibold mb-2">Plano Premium</h3>
+              <h3 className="text-white font-semibold mb-2">Acesso Premium - R$ 49,99</h3>
               <ul className="text-gray-300 text-sm space-y-1">
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
@@ -62,6 +62,10 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   Controle de investimentos
                 </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  Acesso vitalício
+                </li>
               </ul>
             </div>
             
@@ -69,7 +73,7 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
               onClick={createCheckout}
               className="w-full gradient-primary hover:opacity-90"
             >
-              Assinar Agora
+              Comprar Agora - R$ 49,99
             </Button>
           </CardContent>
         </Card>
@@ -80,7 +84,7 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   return (
     <>
       {children}
-      {/* Subscription status indicator */}
+      {/* Payment status indicator */}
       <div className="fixed bottom-4 right-4 z-50">
         <Card className="bg-green-900 border-green-700">
           <CardContent className="p-3">
