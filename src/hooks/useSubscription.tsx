@@ -18,6 +18,38 @@ export const useSubscription = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  const checkLocalSubscription = async () => {
+    if (!user) {
+      setSubscriptionData({ subscribed: false });
+      setLoading(false);
+      return false;
+    }
+
+    try {
+      // First check local database for existing subscription data
+      const { data: localData, error } = await supabase
+        .from('subscribers')
+        .select('*')
+        .eq('email', user.email)
+        .single();
+
+      if (!error && localData && localData.subscribed) {
+        // User has local subscription data, use it immediately
+        setSubscriptionData({
+          subscribed: localData.subscribed,
+          subscription_tier: localData.subscription_tier,
+          subscription_end: localData.subscription_end
+        });
+        setLoading(false);
+        return true;
+      }
+    } catch (error) {
+      console.log('No local subscription data found, will check Stripe');
+    }
+
+    return false;
+  };
+
   const checkSubscription = async () => {
     if (!user || !session) {
       setSubscriptionData({ subscribed: false });
@@ -121,7 +153,17 @@ export const useSubscription = () => {
   };
 
   useEffect(() => {
-    checkSubscription();
+    const initializeSubscription = async () => {
+      // First try to get local data immediately
+      const hasLocalData = await checkLocalSubscription();
+      
+      // If no local data or user wants fresh data, check Stripe
+      if (!hasLocalData) {
+        await checkSubscription();
+      }
+    };
+
+    initializeSubscription();
   }, [user, session]);
 
   return {
