@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,7 +45,7 @@ export const useMuralSonhos = () => {
         return;
       }
 
-      setS sonhos(data || []);
+      setSonhos(data || []);
     } catch (error) {
       console.error('Erro ao buscar sonhos:', error);
     } finally {
