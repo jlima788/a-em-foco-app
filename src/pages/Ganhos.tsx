@@ -16,20 +16,10 @@ import {
   Calendar,
   Briefcase,
   Gift,
-  PiggyBank
+  PiggyBank,
+  Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-interface Ganho {
-  id: string;
-  fonte: string;
-  valor: number;
-  frequencia: 'mensal' | 'semanal' | 'unica';
-  categoria: string;
-  dataRecebimento: string;
-  icone: any;
-}
+import { useGanhos } from "@/hooks/useGanhos";
 
 const categoriasIcones = {
   salario: Briefcase,
@@ -38,126 +28,68 @@ const categoriasIcones = {
   extra: DollarSign,
 };
 
-const dadosGraficos = [
-  { mes: 'Jan', valor: 4500 },
-  { mes: 'Fev', valor: 5200 },
-  { mes: 'Mar', valor: 4800 },
-  { mes: 'Abr', valor: 5500 },
-  { mes: 'Mai', valor: 5000 },
-  { mes: 'Jun', valor: 5800 },
-];
-
 const Ganhos = () => {
-  const { toast } = useToast();
-  const [ganhos, setGanhos] = useState<Ganho[]>([
-    { 
-      id: '1', 
-      fonte: 'Salário Principal', 
-      valor: 4500, 
-      frequencia: 'mensal', 
-      categoria: 'salario', 
-      dataRecebimento: '2024-01-05',
-      icone: Briefcase 
-    },
-    { 
-      id: '2', 
-      fonte: 'Freelance Design', 
-      valor: 800, 
-      frequencia: 'unica', 
-      categoria: 'freelance', 
-      dataRecebimento: '2024-01-15',
-      icone: Gift 
-    },
-    { 
-      id: '3', 
-      fonte: 'Dividendos', 
-      valor: 150, 
-      frequencia: 'mensal', 
-      categoria: 'investimento', 
-      dataRecebimento: '2024-01-10',
-      icone: PiggyBank 
-    },
-  ]);
-
+  const { ganhos, loading, addGanho, updateGanho, deleteGanho } = useGanhos();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingGanho, setEditingGanho] = useState<Ganho | null>(null);
+  const [editingGanho, setEditingGanho] = useState<any>(null);
   const [formData, setFormData] = useState({
-    fonte: '',
+    descricao: '',
     valor: '',
-    frequencia: '',
+    data_recebimento: '',
     categoria: '',
-    dataRecebimento: '',
+    recorrente: false,
+    observacoes: '',
   });
 
-  const totalMensal = ganhos.reduce((total, ganho) => {
-    if (ganho.frequencia === 'mensal') return total + ganho.valor;
-    if (ganho.frequencia === 'semanal') return total + (ganho.valor * 4);
-    return total; // Não inclui ganhos únicos no cálculo mensal
-  }, 0);
-
+  // Calcular totais baseados nos dados reais
+  const ganhosRecorrentes = ganhos.filter(g => g.recorrente);
+  const ganhosUnicos = ganhos.filter(g => !g.recorrente);
+  const totalMensal = ganhosRecorrentes.reduce((total, ganho) => total + ganho.valor, 0);
   const totalAnual = totalMensal * 12;
-  const ganhosMensais = ganhos.filter(g => g.frequencia === 'mensal');
-  const ganhosExtras = ganhos.filter(g => g.frequencia === 'unica');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fonte || !formData.valor || !formData.frequencia || !formData.categoria || !formData.dataRecebimento) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
+    if (!formData.descricao || !formData.valor || !formData.data_recebimento) {
       return;
     }
 
-    const novoGanho: Ganho = {
-      id: editingGanho ? editingGanho.id : Date.now().toString(),
-      fonte: formData.fonte,
+    const ganhoData = {
+      descricao: formData.descricao,
       valor: parseFloat(formData.valor),
-      frequencia: formData.frequencia as 'mensal' | 'semanal' | 'unica',
-      categoria: formData.categoria,
-      dataRecebimento: formData.dataRecebimento,
-      icone: categoriasIcones[formData.categoria as keyof typeof categoriasIcones] || DollarSign,
+      data_recebimento: formData.data_recebimento,
+      categoria_id: formData.categoria || null,
+      recorrente: formData.recorrente,
+      observacoes: formData.observacoes || null,
     };
 
     if (editingGanho) {
-      setGanhos(ganhos.map(ganho => ganho.id === editingGanho.id ? novoGanho : ganho));
-      toast({
-        title: "Sucesso",
-        description: "Ganho atualizado com sucesso!"
-      });
+      await updateGanho(editingGanho.id, ganhoData);
     } else {
-      setGanhos([...ganhos, novoGanho]);
-      toast({
-        title: "Sucesso",
-        description: "Novo ganho adicionado com sucesso!"
-      });
+      await addGanho(ganhoData);
     }
 
-    setFormData({ fonte: '', valor: '', frequencia: '', categoria: '', dataRecebimento: '' });
+    setFormData({ descricao: '', valor: '', data_recebimento: '', categoria: '', recorrente: false, observacoes: '' });
     setEditingGanho(null);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (ganho: Ganho) => {
+  const handleEdit = (ganho: any) => {
     setEditingGanho(ganho);
     setFormData({
-      fonte: ganho.fonte,
+      descricao: ganho.descricao,
       valor: ganho.valor.toString(),
-      frequencia: ganho.frequencia,
-      categoria: ganho.categoria,
-      dataRecebimento: ganho.dataRecebimento,
+      data_recebimento: ganho.data_recebimento,
+      categoria: ganho.categoria_id || '',
+      recorrente: ganho.recorrente,
+      observacoes: ganho.observacoes || '',
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setGanhos(ganhos.filter(ganho => ganho.id !== id));
-    toast({
-      title: "Sucesso",
-      description: "Ganho removido com sucesso!"
-    });
+  const handleDelete = async (id: string) => {
+    await deleteGanho(id);
   };
 
   const formatCurrency = (value: number) => {
@@ -170,6 +102,17 @@ const Ganhos = () => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Carregando ganhos...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -198,13 +141,14 @@ const Ganhos = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fonte" className="text-gray-300">Fonte de Renda</Label>
+                  <Label htmlFor="descricao" className="text-gray-300">Descrição</Label>
                   <Input
-                    id="fonte"
-                    value={formData.fonte}
-                    onChange={(e) => setFormData({...formData, fonte: e.target.value})}
+                    id="descricao"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({...formData, descricao: e.target.value})}
                     placeholder="Ex: Salário, Freelance"
                     className="bg-gray-700 border-gray-600 text-white"
+                    required
                   />
                 </div>
                 
@@ -218,24 +162,20 @@ const Ganhos = () => {
                     onChange={(e) => setFormData({...formData, valor: e.target.value})}
                     placeholder="0,00"
                     className="bg-gray-700 border-gray-600 text-white"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="frequencia" className="text-gray-300">Frequência</Label>
-                  <Select 
-                    value={formData.frequencia} 
-                    onValueChange={(value) => setFormData({...formData, frequencia: value})}
-                  >
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                      <SelectValue placeholder="Selecione a frequência" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="unica">Única</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="data_recebimento" className="text-gray-300">Data de Recebimento</Label>
+                  <Input
+                    id="data_recebimento"
+                    type="date"
+                    value={formData.data_recebimento}
+                    onChange={(e) => setFormData({...formData, data_recebimento: e.target.value})}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -256,13 +196,24 @@ const Ganhos = () => {
                   </Select>
                 </div>
 
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="recorrente"
+                    checked={formData.recorrente}
+                    onChange={(e) => setFormData({...formData, recorrente: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="recorrente" className="text-gray-300">Ganho recorrente</Label>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="dataRecebimento" className="text-gray-300">Data de Recebimento</Label>
+                  <Label htmlFor="observacoes" className="text-gray-300">Observações</Label>
                   <Input
-                    id="dataRecebimento"
-                    type="date"
-                    value={formData.dataRecebimento}
-                    onChange={(e) => setFormData({...formData, dataRecebimento: e.target.value})}
+                    id="observacoes"
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                    placeholder="Observações adicionais"
                     className="bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
@@ -294,7 +245,7 @@ const Ganhos = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-400" />
-                Total Mensal
+                Total Mensal Recorrente
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -312,7 +263,7 @@ const Ganhos = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-400">{formatCurrency(totalAnual)}</div>
-              <p className="text-xs text-gray-500 mt-1">Baseado na renda mensal</p>
+              <p className="text-xs text-gray-500 mt-1">Baseado na renda mensal recorrente</p>
             </CardContent>
           </Card>
 
@@ -320,11 +271,11 @@ const Ganhos = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-purple-400" />
-                Fontes Ativas
+                Ganhos Recorrentes
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{ganhosMensais.length}</div>
+              <div className="text-2xl font-bold text-purple-400">{ganhosRecorrentes.length}</div>
               <p className="text-xs text-gray-500 mt-1">Receitas mensais</p>
             </CardContent>
           </Card>
@@ -333,60 +284,27 @@ const Ganhos = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                 <Gift className="w-4 h-4 text-yellow-400" />
-                Renda Extra
+                Ganhos Únicos
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-400">{ganhosExtras.length}</div>
+              <div className="text-2xl font-bold text-yellow-400">{ganhosUnicos.length}</div>
               <p className="text-xs text-gray-500 mt-1">
-                {formatCurrency(ganhosExtras.reduce((total, ganho) => total + ganho.valor, 0))} este mês
+                {formatCurrency(ganhosUnicos.reduce((total, ganho) => total + ganho.valor, 0))} total
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Gráfico de Evolução */}
-        <Card className="card-glass animate-slide-up">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-400" />
-              Evolução dos Ganhos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dadosGraficos}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="mes" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1f2937', 
-                    border: '1px solid #374151',
-                    borderRadius: '8px'
-                  }} 
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="valor" 
-                  stroke="#10b981" 
-                  strokeWidth={3}
-                  dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
         {/* Lista de Ganhos */}
-        <Card className="card-glass animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <Card className="card-glass animate-slide-up">
           <CardHeader>
             <CardTitle className="text-white">Suas Fontes de Renda</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {ganhos.map((ganho, index) => {
-                const IconeComponent = ganho.icone;
+                const IconeComponent = categoriasIcones[ganho.categoria_id as keyof typeof categoriasIcones] || DollarSign;
                 return (
                   <div 
                     key={ganho.id} 
@@ -398,9 +316,10 @@ const Ganhos = () => {
                         <IconeComponent className="w-6 h-6 text-green-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold">{ganho.fonte}</h3>
+                        <h3 className="text-white font-semibold">{ganho.descricao}</h3>
                         <p className="text-sm text-gray-400">
-                          {ganho.frequencia} • {formatDate(ganho.dataRecebimento)} • {ganho.categoria}
+                          {formatDate(ganho.data_recebimento)} • {ganho.recorrente ? 'Recorrente' : 'Único'}
+                          {ganho.observacoes && ` • ${ganho.observacoes}`}
                         </p>
                       </div>
                     </div>
@@ -408,7 +327,7 @@ const Ganhos = () => {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="text-lg font-bold text-green-400">{formatCurrency(ganho.valor)}</p>
-                        <p className="text-sm text-gray-400 capitalize">{ganho.frequencia}</p>
+                        <p className="text-sm text-gray-400">{ganho.recorrente ? 'Mensal' : 'Único'}</p>
                       </div>
                       
                       <div className="flex gap-2">
