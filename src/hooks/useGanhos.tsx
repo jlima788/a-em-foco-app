@@ -55,6 +55,12 @@ export const useGanhos = () => {
     if (!user) return;
 
     try {
+      // Se categoria_id for uma string como 'salario', 'freelance', etc., não enviar como UUID
+      const categoria_id = novoGanho.categoria_id && 
+        ['salario', 'freelance', 'investimento', 'extra'].includes(novoGanho.categoria_id) 
+        ? null 
+        : novoGanho.categoria_id;
+
       const { data, error } = await supabase
         .from('ganhos')
         .insert({
@@ -62,7 +68,7 @@ export const useGanhos = () => {
           descricao: novoGanho.descricao,
           valor: novoGanho.valor,
           data_recebimento: novoGanho.data_recebimento,
-          categoria_id: novoGanho.categoria_id,
+          categoria_id: categoria_id,
           recorrente: novoGanho.recorrente,
           observacoes: novoGanho.observacoes
         })
@@ -95,9 +101,16 @@ export const useGanhos = () => {
     if (!user) return;
 
     try {
+      // Mesmo tratamento para categoria_id na atualização
+      const updates = { ...ganhoAtualizado };
+      if (updates.categoria_id && 
+        ['salario', 'freelance', 'investimento', 'extra'].includes(updates.categoria_id)) {
+        updates.categoria_id = null;
+      }
+
       const { error } = await supabase
         .from('ganhos')
-        .update(ganhoAtualizado)
+        .update(updates)
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -112,7 +125,7 @@ export const useGanhos = () => {
       }
 
       setGanhos(prev => prev.map(ganho => 
-        ganho.id === id ? { ...ganho, ...ganhoAtualizado } : ganho
+        ganho.id === id ? { ...ganho, ...updates } : ganho
       ));
 
       toast({
