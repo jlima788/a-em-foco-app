@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { 
   Plus, 
   Edit2, 
@@ -21,24 +20,13 @@ import {
   Landmark
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { useToast } from "@/hooks/use-toast";
-
-interface Investimento {
-  id: string;
-  produto: string;
-  valorInvestido: number;
-  rentabilidade: number;
-  dataInvestimento: string;
-  categoria: string;
-  icone: any;
-  cor: string;
-}
+import { useInvestimentos } from "@/hooks/useInvestimentos";
 
 const categoriasIcones = {
-  rendafixa: { icone: Landmark, cor: '#3b82f6' },
-  acoes: { icone: BarChart2, cor: '#f59e0b' },
-  fundos: { icone: PiggyBank, cor: '#10b981' },
-  cripto: { icone: TrendingUp, cor: '#8b5cf6' },
+  'Renda Fixa': { icone: Landmark, cor: '#3b82f6' },
+  'Ações': { icone: BarChart2, cor: '#f59e0b' },
+  'Fundos': { icone: PiggyBank, cor: '#10b981' },
+  'Criptomoedas': { icone: TrendingUp, cor: '#8b5cf6' },
 };
 
 const compararComIndices = [
@@ -57,141 +45,76 @@ const projecaoAnual = [
 ];
 
 const Investimentos = () => {
-  const { toast } = useToast();
-  const [investimentos, setInvestimentos] = useState<Investimento[]>([
-    { 
-      id: '1', 
-      produto: 'CDB Pré-fixado', 
-      valorInvestido: 5000, 
-      rentabilidade: 9.5, 
-      dataInvestimento: '2023-10-15',
-      categoria: 'rendafixa',
-      icone: Landmark,
-      cor: '#3b82f6'
-    },
-    { 
-      id: '2', 
-      produto: 'Fundo Imobiliário', 
-      valorInvestido: 8000, 
-      rentabilidade: 12, 
-      dataInvestimento: '2023-08-20',
-      categoria: 'fundos',
-      icone: PiggyBank,
-      cor: '#10b981'
-    },
-    { 
-      id: '3', 
-      produto: 'Ações PETR4', 
-      valorInvestido: 3000, 
-      rentabilidade: 7.5, 
-      dataInvestimento: '2023-11-05',
-      categoria: 'acoes',
-      icone: BarChart2,
-      cor: '#f59e0b'
-    },
-    { 
-      id: '4', 
-      produto: 'Bitcoin', 
-      valorInvestido: 2000, 
-      rentabilidade: 15, 
-      dataInvestimento: '2023-09-10',
-      categoria: 'cripto',
-      icone: TrendingUp,
-      cor: '#8b5cf6'
-    },
-  ]);
-
+  const { investimentos, loading, addInvestimento, updateInvestimento, deleteInvestimento } = useInvestimentos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingInvestimento, setEditingInvestimento] = useState<Investimento | null>(null);
+  const [editingInvestimento, setEditingInvestimento] = useState<any>(null);
   const [formData, setFormData] = useState({
-    produto: '',
-    valorInvestido: '',
-    rentabilidade: '',
-    dataInvestimento: '',
-    categoria: '',
+    nome: '',
+    valor_investido: '',
+    rentabilidade_esperada: '',
+    data_investimento: '',
+    tipo: '',
   });
 
-  const totalInvestido = investimentos.reduce((total, inv) => total + inv.valorInvestido, 0);
+  const totalInvestido = investimentos.reduce((total, inv) => total + inv.valor_investido, 0);
   const rentabilidadeMedia = investimentos.length > 0 ? 
-    investimentos.reduce((total, inv) => total + (inv.rentabilidade * inv.valorInvestido), 0) / totalInvestido : 0;
+    investimentos.reduce((total, inv) => total + ((inv.rentabilidade_esperada || 0) * inv.valor_investido), 0) / totalInvestido : 0;
   
   const distribuicaoData = investimentos.reduce<{nome: string; valor: number; cor: string}[]>((acc, inv) => {
-    const existingCategory = acc.find(item => item.nome === inv.categoria);
+    const existingCategory = acc.find(item => item.nome === inv.tipo);
     if (existingCategory) {
-      existingCategory.valor += inv.valorInvestido;
+      existingCategory.valor += inv.valor_investido;
     } else {
-      const categoriaInfo = categoriasIcones[inv.categoria as keyof typeof categoriasIcones] || categoriasIcones.rendafixa;
+      const categoriaInfo = categoriasIcones[inv.tipo as keyof typeof categoriasIcones] || categoriasIcones['Renda Fixa'];
       acc.push({ 
-        nome: inv.categoria, 
-        valor: inv.valorInvestido,
+        nome: inv.tipo, 
+        valor: inv.valor_investido,
         cor: categoriaInfo.cor
       });
     }
     return acc;
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.produto || !formData.valorInvestido || !formData.rentabilidade || !formData.categoria) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
+    if (!formData.nome || !formData.valor_investido || !formData.tipo) {
       return;
     }
 
-    const categoriaInfo = categoriasIcones[formData.categoria as keyof typeof categoriasIcones] || categoriasIcones.rendafixa;
-
-    const novoInvestimento: Investimento = {
-      id: editingInvestimento ? editingInvestimento.id : Date.now().toString(),
-      produto: formData.produto,
-      valorInvestido: parseFloat(formData.valorInvestido),
-      rentabilidade: parseFloat(formData.rentabilidade),
-      dataInvestimento: formData.dataInvestimento,
-      categoria: formData.categoria,
-      icone: categoriaInfo.icone,
-      cor: categoriaInfo.cor,
+    const investimentoData = {
+      nome: formData.nome,
+      valor_investido: parseFloat(formData.valor_investido),
+      rentabilidade_esperada: formData.rentabilidade_esperada ? parseFloat(formData.rentabilidade_esperada) : null,
+      data_investimento: formData.data_investimento || new Date().toISOString().split('T')[0],
+      tipo: formData.tipo,
     };
 
     if (editingInvestimento) {
-      setInvestimentos(investimentos.map(inv => inv.id === editingInvestimento.id ? novoInvestimento : inv));
-      toast({
-        title: "Sucesso",
-        description: "Investimento atualizado com sucesso!"
-      });
+      await updateInvestimento(editingInvestimento.id, investimentoData);
     } else {
-      setInvestimentos([...investimentos, novoInvestimento]);
-      toast({
-        title: "Sucesso",
-        description: "Novo investimento adicionado com sucesso!"
-      });
+      await addInvestimento(investimentoData);
     }
 
-    setFormData({ produto: '', valorInvestido: '', rentabilidade: '', dataInvestimento: '', categoria: '' });
+    setFormData({ nome: '', valor_investido: '', rentabilidade_esperada: '', data_investimento: '', tipo: '' });
     setEditingInvestimento(null);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (investimento: Investimento) => {
+  const handleEdit = (investimento: any) => {
     setEditingInvestimento(investimento);
     setFormData({
-      produto: investimento.produto,
-      valorInvestido: investimento.valorInvestido.toString(),
-      rentabilidade: investimento.rentabilidade.toString(),
-      dataInvestimento: investimento.dataInvestimento,
-      categoria: investimento.categoria,
+      nome: investimento.nome,
+      valor_investido: investimento.valor_investido.toString(),
+      rentabilidade_esperada: investimento.rentabilidade_esperada?.toString() || '',
+      data_investimento: investimento.data_investimento,
+      tipo: investimento.tipo,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setInvestimentos(investimentos.filter(inv => inv.id !== id));
-    toast({
-      title: "Sucesso",
-      description: "Investimento removido com sucesso!"
-    });
+  const handleDelete = async (id: string) => {
+    await deleteInvestimento(id);
   };
 
   const formatCurrency = (value: number) => {
@@ -205,15 +128,17 @@ const Investimentos = () => {
     return principal * Math.pow(1 + taxa / 100, anos);
   };
 
-  const getNomeTipoPorId = (categoria: string) => {
-    const tipos = {
-      rendafixa: 'Renda Fixa',
-      acoes: 'Ações',
-      fundos: 'Fundos',
-      cripto: 'Criptomoedas',
-    };
-    return tipos[categoria as keyof typeof tipos] || categoria;
+  const getIconeECor = (tipo: string) => {
+    return categoriasIcones[tipo as keyof typeof categoriasIcones] || categoriasIcones['Renda Fixa'];
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -242,11 +167,11 @@ const Investimentos = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="produto" className="text-gray-300">Nome do Produto</Label>
+                  <Label htmlFor="nome" className="text-gray-300">Nome do Produto</Label>
                   <Input
-                    id="produto"
-                    value={formData.produto}
-                    onChange={(e) => setFormData({...formData, produto: e.target.value})}
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
                     placeholder="Ex: CDB, Tesouro Direto, Ações"
                     className="bg-gray-700 border-gray-600 text-white"
                   />
@@ -254,25 +179,25 @@ const Investimentos = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="valorInvestido" className="text-gray-300">Valor Investido (R$)</Label>
+                    <Label htmlFor="valor_investido" className="text-gray-300">Valor Investido (R$)</Label>
                     <Input
-                      id="valorInvestido"
+                      id="valor_investido"
                       type="number"
                       step="0.01"
-                      value={formData.valorInvestido}
-                      onChange={(e) => setFormData({...formData, valorInvestido: e.target.value})}
+                      value={formData.valor_investido}
+                      onChange={(e) => setFormData({...formData, valor_investido: e.target.value})}
                       placeholder="0,00"
                       className="bg-gray-700 border-gray-600 text-white"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rentabilidade" className="text-gray-300">Rentabilidade (% a.a.)</Label>
+                    <Label htmlFor="rentabilidade_esperada" className="text-gray-300">Rentabilidade (% a.a.)</Label>
                     <Input
-                      id="rentabilidade"
+                      id="rentabilidade_esperada"
                       type="number"
                       step="0.01"
-                      value={formData.rentabilidade}
-                      onChange={(e) => setFormData({...formData, rentabilidade: e.target.value})}
+                      value={formData.rentabilidade_esperada}
+                      onChange={(e) => setFormData({...formData, rentabilidade_esperada: e.target.value})}
                       placeholder="0,00"
                       className="bg-gray-700 border-gray-600 text-white"
                     />
@@ -281,29 +206,29 @@ const Investimentos = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="dataInvestimento" className="text-gray-300">Data do Investimento</Label>
+                    <Label htmlFor="data_investimento" className="text-gray-300">Data do Investimento</Label>
                     <Input
-                      id="dataInvestimento"
+                      id="data_investimento"
                       type="date"
-                      value={formData.dataInvestimento}
-                      onChange={(e) => setFormData({...formData, dataInvestimento: e.target.value})}
+                      value={formData.data_investimento}
+                      onChange={(e) => setFormData({...formData, data_investimento: e.target.value})}
                       className="bg-gray-700 border-gray-600 text-white"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="categoria" className="text-gray-300">Categoria</Label>
+                    <Label htmlFor="tipo" className="text-gray-300">Categoria</Label>
                     <Select 
-                      value={formData.categoria} 
-                      onValueChange={(value) => setFormData({...formData, categoria: value})}
+                      value={formData.tipo} 
+                      onValueChange={(value) => setFormData({...formData, tipo: value})}
                     >
                       <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                         <SelectValue placeholder="Selecione a categoria" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-700 border-gray-600">
-                        <SelectItem value="rendafixa">Renda Fixa</SelectItem>
-                        <SelectItem value="acoes">Ações</SelectItem>
-                        <SelectItem value="fundos">Fundos</SelectItem>
-                        <SelectItem value="cripto">Criptomoedas</SelectItem>
+                        <SelectItem value="Renda Fixa">Renda Fixa</SelectItem>
+                        <SelectItem value="Ações">Ações</SelectItem>
+                        <SelectItem value="Fundos">Fundos</SelectItem>
+                        <SelectItem value="Criptomoedas">Criptomoedas</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -400,32 +325,38 @@ const Investimentos = () => {
             </CardHeader>
             <CardContent>
               <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={distribuicaoData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="valor"
-                      label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {distribuicaoData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.cor} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value) => formatCurrency(value as number)}
-                      contentStyle={{ 
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151',
-                        borderRadius: '8px'
-                      }} 
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                {distribuicaoData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={distribuicaoData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="valor"
+                        label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {distribuicaoData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.cor} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => formatCurrency(value as number)}
+                        contentStyle={{ 
+                          backgroundColor: '#1f2937', 
+                          border: '1px solid #374151',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    Adicione investimentos para ver a distribuição
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-4">
@@ -435,7 +366,7 @@ const Investimentos = () => {
                       className="w-3 h-3 rounded-full" 
                       style={{ backgroundColor: item.cor }}
                     />
-                    <span className="text-sm text-gray-400 capitalize">{getNomeTipoPorId(item.nome)}</span>
+                    <span className="text-sm text-gray-400">{item.nome}</span>
                   </div>
                 ))}
               </div>
@@ -522,7 +453,7 @@ const Investimentos = () => {
           <CardContent>
             <div className="space-y-4">
               {investimentos.map((investimento, index) => {
-                const IconeComponent = investimento.icone;
+                const { icone: IconeComponent, cor } = getIconeECor(investimento.tipo);
                 return (
                   <div 
                     key={investimento.id} 
@@ -532,22 +463,24 @@ const Investimentos = () => {
                     <div className="flex items-center gap-4">
                       <div 
                         className="w-12 h-12 rounded-xl flex items-center justify-center" 
-                        style={{ backgroundColor: `${investimento.cor}20` }}
+                        style={{ backgroundColor: `${cor}20` }}
                       >
-                        <IconeComponent className="w-6 h-6" style={{ color: investimento.cor }} />
+                        <IconeComponent className="w-6 h-6" style={{ color: cor }} />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold">{investimento.produto}</h3>
+                        <h3 className="text-white font-semibold">{investimento.nome}</h3>
                         <p className="text-sm text-gray-400">
-                          {new Date(investimento.dataInvestimento).toLocaleDateString('pt-BR')} • {getNomeTipoPorId(investimento.categoria)}
+                          {new Date(investimento.data_investimento).toLocaleDateString('pt-BR')} • {investimento.tipo}
                         </p>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-lg font-bold text-green-400">{formatCurrency(investimento.valorInvestido)}</p>
-                        <p className="text-sm text-blue-400">Rend: {investimento.rentabilidade}% a.a.</p>
+                        <p className="text-lg font-bold text-green-400">{formatCurrency(investimento.valor_investido)}</p>
+                        <p className="text-sm text-blue-400">
+                          Rend: {investimento.rentabilidade_esperada ? `${investimento.rentabilidade_esperada}% a.a.` : 'N/A'}
+                        </p>
                       </div>
                       
                       <div className="flex gap-2">
