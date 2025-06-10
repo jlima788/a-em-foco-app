@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Plus, 
   Edit2, 
@@ -15,20 +16,10 @@ import {
   Car,
   Home,
   Plane,
-  Calculator
+  Calculator,
+  Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface Sonho {
-  id: string;
-  nome: string;
-  valorTotal: number;
-  valorEconomizado: number;
-  investimentoMensal: number;
-  categoria: string;
-  icone: any;
-  cor: string;
-}
+import { useMuralSonhos } from "@/hooks/useMuralSonhos";
 
 const categoriasIcones = {
   veiculo: { icone: Car, cor: '#3b82f6' },
@@ -38,131 +29,85 @@ const categoriasIcones = {
 };
 
 const MuralSonhos = () => {
-  const { toast } = useToast();
-  const [sonhos, setSonhos] = useState<Sonho[]>([
-    { 
-      id: '1', 
-      nome: 'Carro Novo', 
-      valorTotal: 50000, 
-      valorEconomizado: 15000, 
-      investimentoMensal: 800,
-      categoria: 'veiculo',
-      icone: Car,
-      cor: '#3b82f6'
-    },
-    { 
-      id: '2', 
-      nome: 'Casa Própria', 
-      valorTotal: 200000, 
-      valorEconomizado: 45000, 
-      investimentoMensal: 1200,
-      categoria: 'imovel',
-      icone: Home,
-      cor: '#10b981'
-    },
-    { 
-      id: '3', 
-      nome: 'Viagem Europa', 
-      valorTotal: 15000, 
-      valorEconomizado: 8000, 
-      investimentoMensal: 400,
-      categoria: 'viagem',
-      icone: Plane,
-      cor: '#f59e0b'
-    },
-  ]);
-
+  const { sonhos, loading, addSonho, updateSonho, deleteSonho } = useMuralSonhos();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingSonho, setEditingSonho] = useState<Sonho | null>(null);
+  const [editingSonho, setEditingSonho] = useState<any>(null);
   const [showCalculator, setShowCalculator] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    nome: '',
-    valorTotal: '',
-    valorEconomizado: '',
-    investimentoMensal: '',
+    titulo: '',
+    descricao: '',
+    valor_meta: '',
+    valor_atual: '',
+    data_meta: '',
     categoria: '',
+    prioridade: 'media',
   });
 
-  const totalSonhos = sonhos.reduce((total, sonho) => total + sonho.valorTotal, 0);
-  const totalEconomizado = sonhos.reduce((total, sonho) => total + sonho.valorEconomizado, 0);
-  const totalInvestimentoMensal = sonhos.reduce((total, sonho) => total + sonho.investimentoMensal, 0);
+  // Calcular totais baseados nos dados reais
+  const totalSonhos = sonhos.reduce((total, sonho) => total + sonho.valor_meta, 0);
+  const totalEconomizado = sonhos.reduce((total, sonho) => total + sonho.valor_atual, 0);
   const progressoGeral = totalSonhos > 0 ? (totalEconomizado / totalSonhos) * 100 : 0;
 
-  const calcularTempoRestante = (sonho: Sonho) => {
-    const valorRestante = sonho.valorTotal - sonho.valorEconomizado;
-    if (sonho.investimentoMensal <= 0) return "∞";
-    const mesesRestantes = Math.ceil(valorRestante / sonho.investimentoMensal);
-    const anos = Math.floor(mesesRestantes / 12);
-    const meses = mesesRestantes % 12;
-    
-    if (anos > 0) {
-      return `${anos}a ${meses}m`;
-    }
-    return `${meses}m`;
+  const calcularTempoRestante = (sonho: any) => {
+    const valorRestante = sonho.valor_meta - sonho.valor_atual;
+    if (valorRestante <= 0) return "Concluído";
+    return "Em andamento";
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.nome || !formData.valorTotal || !formData.categoria) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
+    if (!formData.titulo || !formData.valor_meta) {
       return;
     }
 
-    const categoriaInfo = categoriasIcones[formData.categoria as keyof typeof categoriasIcones] || categoriasIcones.outros;
-
-    const novoSonho: Sonho = {
-      id: editingSonho ? editingSonho.id : Date.now().toString(),
-      nome: formData.nome,
-      valorTotal: parseFloat(formData.valorTotal),
-      valorEconomizado: parseFloat(formData.valorEconomizado) || 0,
-      investimentoMensal: parseFloat(formData.investimentoMensal) || 0,
-      categoria: formData.categoria,
-      icone: categoriaInfo.icone,
-      cor: categoriaInfo.cor,
+    const sonhoData = {
+      titulo: formData.titulo,
+      descricao: formData.descricao || null,
+      valor_meta: parseFloat(formData.valor_meta),
+      valor_atual: parseFloat(formData.valor_atual) || 0,
+      data_meta: formData.data_meta || null,
+      categoria: formData.categoria || null,
+      prioridade: formData.prioridade,
+      status: 'ativo',
     };
 
     if (editingSonho) {
-      setSonhos(sonhos.map(sonho => sonho.id === editingSonho.id ? novoSonho : sonho));
-      toast({
-        title: "Sucesso",
-        description: "Sonho atualizado com sucesso!"
-      });
+      await updateSonho(editingSonho.id, sonhoData);
     } else {
-      setSonhos([...sonhos, novoSonho]);
-      toast({
-        title: "Sucesso",
-        description: "Novo sonho adicionado com sucesso!"
-      });
+      await addSonho(sonhoData);
     }
 
-    setFormData({ nome: '', valorTotal: '', valorEconomizado: '', investimentoMensal: '', categoria: '' });
+    setFormData({ 
+      titulo: '', 
+      descricao: '', 
+      valor_meta: '', 
+      valor_atual: '', 
+      data_meta: '', 
+      categoria: '', 
+      prioridade: 'media' 
+    });
     setEditingSonho(null);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (sonho: Sonho) => {
+  const handleEdit = (sonho: any) => {
     setEditingSonho(sonho);
     setFormData({
-      nome: sonho.nome,
-      valorTotal: sonho.valorTotal.toString(),
-      valorEconomizado: sonho.valorEconomizado.toString(),
-      investimentoMensal: sonho.investimentoMensal.toString(),
-      categoria: sonho.categoria,
+      titulo: sonho.titulo,
+      descricao: sonho.descricao || '',
+      valor_meta: sonho.valor_meta.toString(),
+      valor_atual: sonho.valor_atual.toString(),
+      data_meta: sonho.data_meta || '',
+      categoria: sonho.categoria || '',
+      prioridade: sonho.prioridade,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setSonhos(sonhos.filter(sonho => sonho.id !== id));
-    toast({
-      title: "Sucesso",
-      description: "Sonho removido com sucesso!"
-    });
+  const handleDelete = async (id: string) => {
+    await deleteSonho(id);
   };
 
   const formatCurrency = (value: number) => {
@@ -171,6 +116,17 @@ const MuralSonhos = () => {
       currency: 'BRL'
     }).format(value);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Carregando sonhos...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -199,69 +155,101 @@ const MuralSonhos = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nome" className="text-gray-300">Nome do Sonho</Label>
+                  <Label htmlFor="titulo" className="text-gray-300">Título do Sonho</Label>
                   <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                    id="titulo"
+                    value={formData.titulo}
+                    onChange={(e) => setFormData({...formData, titulo: e.target.value})}
                     placeholder="Ex: Carro novo, Casa própria"
+                    className="bg-gray-700 border-gray-600 text-white"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="descricao" className="text-gray-300">Descrição</Label>
+                  <Input
+                    id="descricao"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+                    placeholder="Descrição do sonho"
                     className="bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
                 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="valor_meta" className="text-gray-300">Valor Meta (R$)</Label>
+                    <Input
+                      id="valor_meta"
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_meta}
+                      onChange={(e) => setFormData({...formData, valor_meta: e.target.value})}
+                      placeholder="0,00"
+                      className="bg-gray-700 border-gray-600 text-white"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="valor_atual" className="text-gray-300">Valor Atual (R$)</Label>
+                    <Input
+                      id="valor_atual"
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_atual}
+                      onChange={(e) => setFormData({...formData, valor_atual: e.target.value})}
+                      placeholder="0,00"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="valorTotal" className="text-gray-300">Valor Total (R$)</Label>
+                  <Label htmlFor="data_meta" className="text-gray-300">Data Meta</Label>
                   <Input
-                    id="valorTotal"
-                    type="number"
-                    step="0.01"
-                    value={formData.valorTotal}
-                    onChange={(e) => setFormData({...formData, valorTotal: e.target.value})}
-                    placeholder="0,00"
+                    id="data_meta"
+                    type="date"
+                    value={formData.data_meta}
+                    onChange={(e) => setFormData({...formData, data_meta: e.target.value})}
                     className="bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="valorEconomizado" className="text-gray-300">Valor Já Economizado (R$)</Label>
-                  <Input
-                    id="valorEconomizado"
-                    type="number"
-                    step="0.01"
-                    value={formData.valorEconomizado}
-                    onChange={(e) => setFormData({...formData, valorEconomizado: e.target.value})}
-                    placeholder="0,00"
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="investimentoMensal" className="text-gray-300">Investimento Mensal (R$)</Label>
-                  <Input
-                    id="investimentoMensal"
-                    type="number"
-                    step="0.01"
-                    value={formData.investimentoMensal}
-                    onChange={(e) => setFormData({...formData, investimentoMensal: e.target.value})}
-                    placeholder="0,00"
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="categoria" className="text-gray-300">Categoria</Label>
-                  <select
-                    id="categoria"
-                    value={formData.categoria}
-                    onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                    className="w-full p-2 bg-gray-700 border border-gray-600 text-white rounded-md"
-                  >
-                    <option value="">Selecione uma categoria</option>
-                    <option value="veiculo">Veículo</option>
-                    <option value="imovel">Imóvel</option>
-                    <option value="viagem">Viagem</option>
-                    <option value="outros">Outros</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="categoria" className="text-gray-300">Categoria</Label>
+                    <Select 
+                      value={formData.categoria} 
+                      onValueChange={(value) => setFormData({...formData, categoria: value})}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectItem value="veiculo">Veículo</SelectItem>
+                        <SelectItem value="imovel">Imóvel</SelectItem>
+                        <SelectItem value="viagem">Viagem</SelectItem>
+                        <SelectItem value="outros">Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="prioridade" className="text-gray-300">Prioridade</Label>
+                    <Select 
+                      value={formData.prioridade} 
+                      onValueChange={(value) => setFormData({...formData, prioridade: value})}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue placeholder="Selecione a prioridade" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectItem value="alta">Alta</SelectItem>
+                        <SelectItem value="media">Média</SelectItem>
+                        <SelectItem value="baixa">Baixa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -317,12 +305,12 @@ const MuralSonhos = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-blue-400" />
-                Investimento Mensal
+                Progresso Geral
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{formatCurrency(totalInvestimentoMensal)}</div>
-              <p className="text-xs text-gray-500 mt-1">Total mensal planejado</p>
+              <div className="text-2xl font-bold text-blue-400">{progressoGeral.toFixed(1)}%</div>
+              <p className="text-xs text-gray-500 mt-1">De todos os sonhos</p>
             </CardContent>
           </Card>
 
@@ -366,8 +354,9 @@ const MuralSonhos = () => {
         {/* Lista de Sonhos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sonhos.map((sonho, index) => {
-            const progresso = (sonho.valorEconomizado / sonho.valorTotal) * 100;
-            const IconeComponent = sonho.icone;
+            const progresso = sonho.valor_meta > 0 ? (sonho.valor_atual / sonho.valor_meta) * 100 : 0;
+            const categoriaInfo = categoriasIcones[sonho.categoria as keyof typeof categoriasIcones] || categoriasIcones.outros;
+            const IconeComponent = categoriaInfo.icone;
             const tempoRestante = calcularTempoRestante(sonho);
             
             return (
@@ -378,13 +367,13 @@ const MuralSonhos = () => {
               >
                 <div 
                   className="absolute top-0 left-0 w-full h-1"
-                  style={{ backgroundColor: sonho.cor }}
+                  style={{ backgroundColor: categoriaInfo.cor }}
                 />
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-white flex items-center gap-2">
-                      <IconeComponent className="w-5 h-5" style={{ color: sonho.cor }} />
-                      {sonho.nome}
+                      <IconeComponent className="w-5 h-5" style={{ color: categoriaInfo.cor }} />
+                      {sonho.titulo}
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
@@ -415,14 +404,18 @@ const MuralSonhos = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {sonho.descricao && (
+                    <p className="text-gray-400 text-sm">{sonho.descricao}</p>
+                  )}
+                  
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm text-gray-400">Meta</p>
-                      <p className="text-lg font-bold text-white">{formatCurrency(sonho.valorTotal)}</p>
+                      <p className="text-lg font-bold text-white">{formatCurrency(sonho.valor_meta)}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-400">Economizado</p>
-                      <p className="text-lg font-bold text-green-400">{formatCurrency(sonho.valorEconomizado)}</p>
+                      <p className="text-lg font-bold text-green-400">{formatCurrency(sonho.valor_atual)}</p>
                     </div>
                   </div>
 
@@ -436,48 +429,16 @@ const MuralSonhos = () => {
 
                   <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                     <div>
-                      <p className="text-sm text-gray-400">Investimento Mensal</p>
+                      <p className="text-sm text-gray-400">Prioridade</p>
                       <p className="text-sm font-semibold text-blue-400">
-                        {formatCurrency(sonho.investimentoMensal)}
+                        {sonho.prioridade}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-400">Tempo Restante</p>
+                      <p className="text-sm text-gray-400">Status</p>
                       <p className="text-sm font-semibold text-yellow-400">{tempoRestante}</p>
                     </div>
                   </div>
-
-                  {showCalculator === sonho.id && (
-                    <div className="mt-4 p-4 bg-white/5 rounded-lg space-y-3">
-                      <h4 className="text-white font-semibold">Simulador de Cenários</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-400">Restante:</p>
-                          <p className="text-white font-semibold">
-                            {formatCurrency(sonho.valorTotal - sonho.valorEconomizado)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Com +R$ 200/mês:</p>
-                          <p className="text-green-400 font-semibold">
-                            {Math.ceil((sonho.valorTotal - sonho.valorEconomizado) / (sonho.investimentoMensal + 200))}m
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Com valor dobrado:</p>
-                          <p className="text-blue-400 font-semibold">
-                            {Math.ceil((sonho.valorTotal - sonho.valorEconomizado) / (sonho.investimentoMensal * 2))}m
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Meta para 1 ano:</p>
-                          <p className="text-purple-400 font-semibold">
-                            {formatCurrency((sonho.valorTotal - sonho.valorEconomizado) / 12)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             );

@@ -25,21 +25,36 @@ export const useFinancialData = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const fetchFinancialSummary = async () => {
       try {
         setLoading(true);
 
-        // Buscar ganhos do mês atual
+        // Buscar ganhos do mês atual (apenas recorrentes + únicos do mês atual)
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
         
         const { data: ganhos } = await supabase
           .from('ganhos')
-          .select('valor')
-          .eq('user_id', user.id)
-          .gte('data_recebimento', `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`);
+          .select('valor, recorrente, data_recebimento')
+          .eq('user_id', user.id);
+
+        // Calcular total de ganhos (recorrentes + únicos do mês atual)
+        const totalGanhos = ganhos?.reduce((sum, ganho) => {
+          if (ganho.recorrente) {
+            return sum + Number(ganho.valor);
+          } else {
+            const ganhoDate = new Date(ganho.data_recebimento);
+            if (ganhoDate.getMonth() + 1 === currentMonth && ganhoDate.getFullYear() === currentYear) {
+              return sum + Number(ganho.valor);
+            }
+          }
+          return sum;
+        }, 0) || 0;
 
         // Buscar contas fixas pendentes
         const { data: contasFixas } = await supabase
@@ -76,7 +91,7 @@ export const useFinancialData = () => {
           .eq('status', 'ativo');
 
         setSummary({
-          totalGanhos: ganhos?.reduce((sum, item) => sum + Number(item.valor), 0) || 0,
+          totalGanhos,
           totalContasFixas: contasFixas?.reduce((sum, item) => sum + Number(item.valor), 0) || 0,
           totalDividas: dividas?.reduce((sum, item) => sum + Number(item.valor_restante), 0) || 0,
           totalInvestimentos: investimentos?.reduce((sum, item) => sum + Number(item.valor_atual || item.valor_investido), 0) || 0,

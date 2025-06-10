@@ -20,19 +20,10 @@ import {
   Wifi,
   ShoppingCart,
   Car,
-  Heart
+  Heart,
+  Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface ContaFixa {
-  id: string;
-  nome: string;
-  valor: number;
-  vencimento: number;
-  categoria: string;
-  status: 'pago' | 'pendente';
-  icone: any;
-}
+import { useContasFixas } from "@/hooks/useContasFixas";
 
 const categoriasIcones = {
   moradia: Home,
@@ -43,19 +34,14 @@ const categoriasIcones = {
   alimentacao: ShoppingCart,
   saude: Heart,
   financiamento: CreditCard,
+  outros: CreditCard,
 };
 
 const ContasFixas = () => {
-  const { toast } = useToast();
-  const [contas, setContas] = useState<ContaFixa[]>([
-    { id: '1', nome: 'Aluguel', valor: 1200, vencimento: 5, categoria: 'moradia', status: 'pago', icone: Home },
-    { id: '2', nome: 'Conta de Luz', valor: 180, vencimento: 15, categoria: 'energia', status: 'pendente', icone: Zap },
-    { id: '3', nome: 'Internet', valor: 89, vencimento: 10, categoria: 'internet', status: 'pago', icone: Wifi },
-    { id: '4', nome: 'Plano de Saúde', valor: 350, vencimento: 8, categoria: 'saude', status: 'pendente', icone: Heart },
-  ]);
-
+  const { contas, loading, addConta, updateConta, deleteConta, toggleStatus } = useContasFixas();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingConta, setEditingConta] = useState<ContaFixa | null>(null);
+  const [editingConta, setEditingConta] = useState<any>(null);
   const [formData, setFormData] = useState({
     nome: '',
     valor: '',
@@ -67,40 +53,25 @@ const ContasFixas = () => {
   const contasPendentes = contas.filter(conta => conta.status === 'pendente');
   const contasPagas = contas.filter(conta => conta.status === 'pago');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.nome || !formData.valor || !formData.vencimento || !formData.categoria) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
       return;
     }
 
-    const novaConta: ContaFixa = {
-      id: editingConta ? editingConta.id : Date.now().toString(),
+    const contaData = {
       nome: formData.nome,
       valor: parseFloat(formData.valor),
       vencimento: parseInt(formData.vencimento),
       categoria: formData.categoria,
-      status: 'pendente',
-      icone: categoriasIcones[formData.categoria as keyof typeof categoriasIcones] || CreditCard,
+      status: 'pendente' as const,
     };
 
     if (editingConta) {
-      setContas(contas.map(conta => conta.id === editingConta.id ? novaConta : conta));
-      toast({
-        title: "Sucesso",
-        description: "Conta atualizada com sucesso!"
-      });
+      await updateConta(editingConta.id, contaData);
     } else {
-      setContas([...contas, novaConta]);
-      toast({
-        title: "Sucesso",
-        description: "Nova conta adicionada com sucesso!"
-      });
+      await addConta(contaData);
     }
 
     setFormData({ nome: '', valor: '', vencimento: '', categoria: '' });
@@ -108,7 +79,7 @@ const ContasFixas = () => {
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (conta: ContaFixa) => {
+  const handleEdit = (conta: any) => {
     setEditingConta(conta);
     setFormData({
       nome: conta.nome,
@@ -119,20 +90,8 @@ const ContasFixas = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setContas(contas.filter(conta => conta.id !== id));
-    toast({
-      title: "Sucesso",
-      description: "Conta removida com sucesso!"
-    });
-  };
-
-  const toggleStatus = (id: string) => {
-    setContas(contas.map(conta => 
-      conta.id === id 
-        ? { ...conta, status: conta.status === 'pago' ? 'pendente' : 'pago' }
-        : conta
-    ));
+  const handleDelete = async (id: string) => {
+    await deleteConta(id);
   };
 
   const formatCurrency = (value: number) => {
@@ -141,6 +100,17 @@ const ContasFixas = () => {
       currency: 'BRL'
     }).format(value);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Carregando contas fixas...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -176,6 +146,7 @@ const ContasFixas = () => {
                     onChange={(e) => setFormData({...formData, nome: e.target.value})}
                     placeholder="Ex: Conta de Luz"
                     className="bg-gray-700 border-gray-600 text-white"
+                    required
                   />
                 </div>
                 
@@ -189,6 +160,7 @@ const ContasFixas = () => {
                     onChange={(e) => setFormData({...formData, valor: e.target.value})}
                     placeholder="0,00"
                     className="bg-gray-700 border-gray-600 text-white"
+                    required
                   />
                 </div>
 
@@ -203,6 +175,7 @@ const ContasFixas = () => {
                     onChange={(e) => setFormData({...formData, vencimento: e.target.value})}
                     placeholder="15"
                     className="bg-gray-700 border-gray-600 text-white"
+                    required
                   />
                 </div>
 
@@ -211,6 +184,7 @@ const ContasFixas = () => {
                   <Select 
                     value={formData.categoria} 
                     onValueChange={(value) => setFormData({...formData, categoria: value})}
+                    required
                   >
                     <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                       <SelectValue placeholder="Selecione uma categoria" />
@@ -224,6 +198,7 @@ const ContasFixas = () => {
                       <SelectItem value="alimentacao">Alimentação</SelectItem>
                       <SelectItem value="saude">Saúde</SelectItem>
                       <SelectItem value="financiamento">Financiamento</SelectItem>
+                      <SelectItem value="outros">Outros</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -303,7 +278,7 @@ const ContasFixas = () => {
           <CardContent>
             <div className="space-y-3">
               {contas.map((conta, index) => {
-                const IconeComponent = conta.icone;
+                const IconeComponent = categoriasIcones[conta.categoria as keyof typeof categoriasIcones] || CreditCard;
                 return (
                   <div 
                     key={conta.id} 
