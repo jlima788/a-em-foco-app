@@ -6,139 +6,90 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { 
   Plus, 
   Edit2, 
   Trash2, 
   CreditCard,
-  AlertTriangle,
-  CheckCircle,
-  TrendingUp
+  TrendingUp,
+  Calendar,
+  AlertCircle,
+  DollarSign,
+  Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface CartaoCredito {
-  id: string;
-  banco: string;
-  limite: number;
-  faturaAtual: number;
-  vencimentoFatura: number;
-  cor: string;
-}
-
-const bancosCores = {
-  nubank: '#8A05BE',
-  c6bank: '#FFD700',
-  itau: '#EC7000',
-  bradesco: '#CC092F',
-  bb: '#FFFF00',
-  picpay: '#21C25E',
-  xp: '#FF6B35',
-  outros: '#6B7280'
-};
+import { useCartoesCredito } from "@/hooks/useCartoesCredito";
 
 const CartoesCredito = () => {
-  const { toast } = useToast();
-  const [cartoes, setCartoes] = useState<CartaoCredito[]>([
-    { 
-      id: '1', 
-      banco: 'nubank', 
-      limite: 5000, 
-      faturaAtual: 1250, 
-      vencimentoFatura: 15,
-      cor: bancosCores.nubank
-    },
-    { 
-      id: '2', 
-      banco: 'c6bank', 
-      limite: 3000, 
-      faturaAtual: 890, 
-      vencimentoFatura: 10,
-      cor: bancosCores.c6bank
-    },
-    { 
-      id: '3', 
-      banco: 'itau', 
-      limite: 8000, 
-      faturaAtual: 2100, 
-      vencimentoFatura: 25,
-      cor: bancosCores.itau
-    },
-  ]);
-
+  const { cartoes, loading, addCartao, updateCartao, deleteCartao } = useCartoesCredito();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCartao, setEditingCartao] = useState<CartaoCredito | null>(null);
+  const [editingCartao, setEditingCartao] = useState<any>(null);
   const [formData, setFormData] = useState({
-    banco: '',
+    nome: '',
     limite: '',
-    faturaAtual: '',
-    vencimentoFatura: '',
+    limite_usado: '',
+    vencimento_fatura: '',
+    melhor_dia_compra: '',
+    ativo: true,
   });
 
-  const totalLimites = cartoes.reduce((total, cartao) => total + cartao.limite, 0);
-  const totalFaturas = cartoes.reduce((total, cartao) => total + cartao.faturaAtual, 0);
-  const limiteDisponivel = totalLimites - totalFaturas;
-  const percentualUtilizacao = (totalFaturas / totalLimites) * 100;
+  // Calcular estatísticas baseadas nos dados reais
+  const cartoesAtivos = cartoes.filter(c => c.ativo);
+  const limiteTotal = cartoes.reduce((total, cartao) => total + cartao.limite, 0);
+  const limiteUsado = cartoes.reduce((total, cartao) => total + cartao.limite_usado, 0);
+  const utilizacaoMedia = limiteTotal > 0 ? (limiteUsado / limiteTotal) * 100 : 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.banco || !formData.limite || !formData.faturaAtual || !formData.vencimentoFatura) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
+    if (!formData.nome || !formData.limite) {
       return;
     }
 
-    const novoCartao: CartaoCredito = {
-      id: editingCartao ? editingCartao.id : Date.now().toString(),
-      banco: formData.banco,
+    const cartaoData = {
+      nome: formData.nome,
       limite: parseFloat(formData.limite),
-      faturaAtual: parseFloat(formData.faturaAtual),
-      vencimentoFatura: parseInt(formData.vencimentoFatura),
-      cor: bancosCores[formData.banco as keyof typeof bancosCores] || bancosCores.outros,
+      limite_usado: parseFloat(formData.limite_usado) || 0,
+      vencimento_fatura: formData.vencimento_fatura ? parseInt(formData.vencimento_fatura) : null,
+      melhor_dia_compra: formData.melhor_dia_compra ? parseInt(formData.melhor_dia_compra) : null,
+      ativo: formData.ativo,
     };
 
     if (editingCartao) {
-      setCartoes(cartoes.map(cartao => cartao.id === editingCartao.id ? novoCartao : cartao));
-      toast({
-        title: "Sucesso",
-        description: "Cartão atualizado com sucesso!"
-      });
+      await updateCartao(editingCartao.id, cartaoData);
     } else {
-      setCartoes([...cartoes, novoCartao]);
-      toast({
-        title: "Sucesso",
-        description: "Novo cartão adicionado com sucesso!"
-      });
+      await addCartao(cartaoData);
     }
 
-    setFormData({ banco: '', limite: '', faturaAtual: '', vencimentoFatura: '' });
+    setFormData({ 
+      nome: '', 
+      limite: '', 
+      limite_usado: '', 
+      vencimento_fatura: '', 
+      melhor_dia_compra: '', 
+      ativo: true 
+    });
     setEditingCartao(null);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (cartao: CartaoCredito) => {
+  const handleEdit = (cartao: any) => {
     setEditingCartao(cartao);
     setFormData({
-      banco: cartao.banco,
+      nome: cartao.nome,
       limite: cartao.limite.toString(),
-      faturaAtual: cartao.faturaAtual.toString(),
-      vencimentoFatura: cartao.vencimentoFatura.toString(),
+      limite_usado: cartao.limite_usado.toString(),
+      vencimento_fatura: cartao.vencimento_fatura?.toString() || '',
+      melhor_dia_compra: cartao.melhor_dia_compra?.toString() || '',
+      ativo: cartao.ativo,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setCartoes(cartoes.filter(cartao => cartao.id !== id));
-    toast({
-      title: "Sucesso",
-      description: "Cartão removido com sucesso!"
-    });
+  const handleDelete = async (id: string) => {
+    await deleteCartao(id);
   };
 
   const formatCurrency = (value: number) => {
@@ -148,25 +99,22 @@ const CartoesCredito = () => {
     }).format(value);
   };
 
-  const getBancoNome = (banco: string) => {
-    const nomes = {
-      nubank: 'Nubank',
-      c6bank: 'C6 Bank',
-      itau: 'Itaú',
-      bradesco: 'Bradesco',
-      bb: 'Banco do Brasil',
-      picpay: 'PicPay',
-      xp: 'XP Investimentos',
-      outros: 'Outros'
-    };
-    return nomes[banco as keyof typeof nomes] || banco;
+  const getUtilizacaoColor = (percentual: number) => {
+    if (percentual >= 80) return 'text-red-400';
+    if (percentual >= 50) return 'text-yellow-400';
+    return 'text-green-400';
   };
 
-  const getUtilizacaoStatus = (utilizacao: number) => {
-    if (utilizacao < 30) return { status: 'Bom', color: 'text-green-400', bgColor: 'bg-green-500/20' };
-    if (utilizacao < 60) return { status: 'Atenção', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' };
-    return { status: 'Alto', color: 'text-red-400', bgColor: 'bg-red-500/20' };
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Carregando cartões...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -177,12 +125,12 @@ const CartoesCredito = () => {
             <SidebarTrigger className="text-white hover:bg-white/10" />
             <div>
               <h1 className="text-2xl font-bold text-white">Cartões de Crédito</h1>
-              <p className="text-gray-400">Gerencie seus cartões e faturas</p>
+              <p className="text-gray-400">Gerencie seus cartões e controle o limite</p>
             </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gradient-warning text-white">
+              <Button className="gradient-primary text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Cartão
               </Button>
@@ -195,65 +143,81 @@ const CartoesCredito = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="banco" className="text-gray-300">Banco</Label>
-                  <Select 
-                    value={formData.banco} 
-                    onValueChange={(value) => setFormData({...formData, banco: value})}
-                  >
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                      <SelectValue placeholder="Selecione o banco" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
-                      <SelectItem value="nubank">Nubank</SelectItem>
-                      <SelectItem value="c6bank">C6 Bank</SelectItem>
-                      <SelectItem value="itau">Itaú</SelectItem>
-                      <SelectItem value="bradesco">Bradesco</SelectItem>
-                      <SelectItem value="bb">Banco do Brasil</SelectItem>
-                      <SelectItem value="picpay">PicPay</SelectItem>
-                      <SelectItem value="xp">XP Investimentos</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="nome" className="text-gray-300">Nome do Cartão</Label>
+                  <Input
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                    placeholder="Ex: Visa Gold, Mastercard Black"
+                    className="bg-gray-700 border-gray-600 text-white"
+                    required
+                  />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="limite" className="text-gray-300">Limite (R$)</Label>
-                  <Input
-                    id="limite"
-                    type="number"
-                    step="0.01"
-                    value={formData.limite}
-                    onChange={(e) => setFormData({...formData, limite: e.target.value})}
-                    placeholder="0,00"
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="limite" className="text-gray-300">Limite Total (R$)</Label>
+                    <Input
+                      id="limite"
+                      type="number"
+                      step="0.01"
+                      value={formData.limite}
+                      onChange={(e) => setFormData({...formData, limite: e.target.value})}
+                      placeholder="0,00"
+                      className="bg-gray-700 border-gray-600 text-white"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="limite_usado" className="text-gray-300">Limite Usado (R$)</Label>
+                    <Input
+                      id="limite_usado"
+                      type="number"
+                      step="0.01"
+                      value={formData.limite_usado}
+                      onChange={(e) => setFormData({...formData, limite_usado: e.target.value})}
+                      placeholder="0,00"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="faturaAtual" className="text-gray-300">Fatura Atual (R$)</Label>
-                  <Input
-                    id="faturaAtual"
-                    type="number"
-                    step="0.01"
-                    value={formData.faturaAtual}
-                    onChange={(e) => setFormData({...formData, faturaAtual: e.target.value})}
-                    placeholder="0,00"
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vencimento_fatura" className="text-gray-300">Vencimento da Fatura</Label>
+                    <Input
+                      id="vencimento_fatura"
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={formData.vencimento_fatura}
+                      onChange={(e) => setFormData({...formData, vencimento_fatura: e.target.value})}
+                      placeholder="Dia do mês"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="melhor_dia_compra" className="text-gray-300">Melhor Dia p/ Compra</Label>
+                    <Input
+                      id="melhor_dia_compra"
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={formData.melhor_dia_compra}
+                      onChange={(e) => setFormData({...formData, melhor_dia_compra: e.target.value})}
+                      placeholder="Dia do mês"
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="vencimentoFatura" className="text-gray-300">Dia do Vencimento</Label>
-                  <Input
-                    id="vencimentoFatura"
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={formData.vencimentoFatura}
-                    onChange={(e) => setFormData({...formData, vencimentoFatura: e.target.value})}
-                    placeholder="15"
-                    className="bg-gray-700 border-gray-600 text-white"
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="ativo"
+                    checked={formData.ativo}
+                    onCheckedChange={(checked) => setFormData({...formData, ativo: checked})}
                   />
+                  <Label htmlFor="ativo" className="text-gray-300">Cartão ativo</Label>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -265,7 +229,7 @@ const CartoesCredito = () => {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" className="flex-1 gradient-warning text-white">
+                  <Button type="submit" className="flex-1 gradient-primary text-white">
                     {editingCartao ? 'Atualizar' : 'Adicionar'}
                   </Button>
                 </div>
@@ -283,185 +247,189 @@ const CartoesCredito = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-blue-400" />
+                Total de Cartões
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-400">{cartoes.length}</div>
+              <p className="text-xs text-gray-500 mt-1">{cartoesAtivos.length} ativos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-glass border-green-500/20 animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-green-400" />
                 Limite Total
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{formatCurrency(totalLimites)}</div>
-              <p className="text-xs text-gray-500 mt-1">{cartoes.length} cartões ativos</p>
+              <div className="text-2xl font-bold text-green-400">{formatCurrency(limiteTotal)}</div>
+              <p className="text-xs text-gray-500 mt-1">Todos os cartões</p>
             </CardContent>
           </Card>
 
-          <Card className="card-glass border-red-500/20 animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <Card className="card-glass border-yellow-500/20 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                Fatura Total
+                <DollarSign className="w-4 h-4 text-yellow-400" />
+                Limite Usado
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-400">{formatCurrency(totalFaturas)}</div>
-              <p className="text-xs text-gray-500 mt-1">A pagar este mês</p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glass border-green-500/20 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                Disponível
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">{formatCurrency(limiteDisponivel)}</div>
-              <p className="text-xs text-gray-500 mt-1">Limite disponível</p>
+              <div className="text-2xl font-bold text-yellow-400">{formatCurrency(limiteUsado)}</div>
+              <p className="text-xs text-gray-500 mt-1">Total utilizado</p>
             </CardContent>
           </Card>
 
           <Card className="card-glass border-purple-500/20 animate-fade-in" style={{ animationDelay: '300ms' }}>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-purple-400" />
+                <AlertCircle className="w-4 h-4 text-purple-400" />
                 Utilização
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{percentualUtilizacao.toFixed(1)}%</div>
-              <p className="text-xs text-gray-500 mt-1">Do limite total</p>
+              <div className={`text-2xl font-bold ${getUtilizacaoColor(utilizacaoMedia)}`}>
+                {utilizacaoMedia.toFixed(1)}%
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Média geral</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Status de Utilização */}
+        {/* Lista de Cartões */}
         <Card className="card-glass animate-slide-up">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
-              Status de Utilização
-            </CardTitle>
+            <CardTitle className="text-white">Seus Cartões de Crédito</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Utilização Total</span>
-                <span className={`font-semibold ${getUtilizacaoStatus(percentualUtilizacao).color}`}>
-                  {getUtilizacaoStatus(percentualUtilizacao).status}
-                </span>
-              </div>
-              <Progress value={percentualUtilizacao} className="h-3" />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="text-center p-3 rounded-lg bg-green-500/10">
-                  <div className="text-green-400 font-semibold">0-30%</div>
-                  <div className="text-gray-400">Utilização Ideal</div>
+              {cartoes.map((cartao, index) => {
+                const utilizacao = cartao.limite > 0 ? (cartao.limite_usado / cartao.limite) * 100 : 0;
+                const disponivel = cartao.limite - cartao.limite_usado;
+                
+                return (
+                  <div 
+                    key={cartao.id} 
+                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                        cartao.ativo ? 'bg-blue-500/20' : 'bg-gray-500/20'
+                      }`}>
+                        <CreditCard className={`w-6 h-6 ${
+                          cartao.ativo ? 'text-blue-400' : 'text-gray-400'
+                        }`} />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold flex items-center gap-2">
+                          {cartao.nome}
+                          {!cartao.ativo && (
+                            <span className="px-2 py-1 bg-gray-600/50 text-gray-400 text-xs rounded-full">
+                              Inativo
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          {cartao.vencimento_fatura && `Venc: ${cartao.vencimento_fatura}`}
+                          {cartao.melhor_dia_compra && ` • Melhor dia: ${cartao.melhor_dia_compra}`}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-6">
+                      <div className="text-right min-w-[200px]">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-gray-400">Utilização</span>
+                          <span className={`text-sm font-semibold ${getUtilizacaoColor(utilizacao)}`}>
+                            {utilizacao.toFixed(1)}%
+                          </span>
+                        </div>
+                        <Progress value={utilizacao} className="h-2 mb-2" />
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Usado: {formatCurrency(cartao.limite_usado)}</span>
+                          <span className="text-green-400">Disponível: {formatCurrency(disponivel)}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Limite: {formatCurrency(cartao.limite)}
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(cartao)}
+                          className="border-gray-600 text-blue-400 hover:bg-blue-500/20"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(cartao.id)}
+                          className="border-gray-600 text-red-400 hover:bg-red-500/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {cartoes.length === 0 && (
+                <div className="text-center py-12">
+                  <CreditCard className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">Nenhum cartão cadastrado</h3>
+                  <p className="text-gray-500 mb-4">Adicione seus cartões para melhor controle financeiro</p>
+                  <Button 
+                    onClick={() => setIsDialogOpen(true)}
+                    className="gradient-primary text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Primeiro Cartão
+                  </Button>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-yellow-500/10">
-                  <div className="text-yellow-400 font-semibold">30-60%</div>
-                  <div className="text-gray-400">Atenção</div>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-red-500/10">
-                  <div className="text-red-400 font-semibold">60%+</div>
-                  <div className="text-gray-400">Alto Risco</div>
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Lista de Cartões */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {cartoes.map((cartao, index) => {
-            const utilizacaoCartao = (cartao.faturaAtual / cartao.limite) * 100;
-            const statusCartao = getUtilizacaoStatus(utilizacaoCartao);
-            
-            return (
-              <Card 
-                key={cartao.id} 
-                className="card-glass animate-fade-in relative overflow-hidden"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div 
-                  className="absolute top-0 left-0 w-full h-1"
-                  style={{ backgroundColor: cartao.cor }}
-                />
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <CreditCard className="w-5 h-5" style={{ color: cartao.cor }} />
-                      {getBancoNome(cartao.banco)}
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(cartao)}
-                        className="border-gray-600 text-blue-400 hover:bg-blue-500/20"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(cartao.id)}
-                        className="border-gray-600 text-red-400 hover:bg-red-500/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-400">Limite</p>
-                      <p className="text-lg font-bold text-white">{formatCurrency(cartao.limite)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-400">Fatura Atual</p>
-                      <p className="text-lg font-bold text-red-400">{formatCurrency(cartao.faturaAtual)}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-400">Utilização</span>
-                      <span className={`text-sm font-semibold ${statusCartao.color}`}>
-                        {utilizacaoCartao.toFixed(1)}%
-                      </span>
-                    </div>
-                    <Progress value={utilizacaoCartao} className="h-2" />
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-                    <div>
-                      <p className="text-sm text-gray-400">Disponível</p>
-                      <p className="text-sm font-semibold text-green-400">
-                        {formatCurrency(cartao.limite - cartao.faturaAtual)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-400">Vencimento</p>
-                      <p className="text-sm font-semibold text-white">Dia {cartao.vencimentoFatura}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {cartoes.length === 0 && (
-          <Card className="card-glass animate-fade-in">
-            <CardContent className="text-center py-12">
-              <CreditCard className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-400 mb-2">Nenhum cartão cadastrado</h3>
-              <p className="text-gray-500 mb-4">Adicione seus cartões de crédito para começar</p>
-              <Button 
-                onClick={() => setIsDialogOpen(true)}
-                className="gradient-warning text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Primeiro Cartão
-              </Button>
+        {/* Dicas de Uso */}
+        {cartoes.length > 0 && (
+          <Card className="card-glass animate-slide-up">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-400" />
+                Dicas de Uso Responsável
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-4 bg-white/5 rounded-lg">
+                  <h4 className="text-green-400 font-semibold mb-2">Utilização Ideal</h4>
+                  <p className="text-gray-300 text-sm">
+                    Mantenha o uso abaixo de 30% do limite para um score melhor.
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-white/5 rounded-lg">
+                  <h4 className="text-blue-400 font-semibold mb-2">Pagamento em Dia</h4>
+                  <p className="text-gray-300 text-sm">
+                    Pague sempre o valor total da fatura até o vencimento.
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-white/5 rounded-lg">
+                  <h4 className="text-purple-400 font-semibold mb-2">Melhor Dia de Compra</h4>
+                  <p className="text-gray-300 text-sm">
+                    Compre logo após o fechamento para ter mais tempo para pagar.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
