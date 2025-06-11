@@ -54,16 +54,28 @@ export const useDividas = () => {
     }
   };
 
-  const addDivida = async (novaDivida: Omit<Divida, 'id'>) => {
+  const addDivida = async (novaDivida: Omit<Divida, 'id' | 'valor_restante'>) => {
     if (!user) return;
 
     try {
+      // Garantir que os dados estão no formato correto e remover valor_restante
+      const dividaData = {
+        user_id: user.id,
+        credor: novaDivida.credor,
+        valor_total: Number(novaDivida.valor_total),
+        valor_pago: Number(novaDivida.valor_pago) || 0,
+        data_inicio: novaDivida.data_inicio,
+        data_vencimento: novaDivida.data_vencimento || null,
+        taxa_juros: novaDivida.taxa_juros ? Number(novaDivida.taxa_juros) : null,
+        status: novaDivida.status || 'ativa',
+        observacoes: novaDivida.observacoes || null
+      };
+
+      console.log('Dados sendo enviados para o banco:', dividaData);
+
       const { data, error } = await supabase
         .from('dividas')
-        .insert({
-          user_id: user.id,
-          ...novaDivida
-        })
+        .insert(dividaData)
         .select()
         .single();
 
@@ -86,6 +98,11 @@ export const useDividas = () => {
       }
     } catch (error) {
       console.error('Erro ao adicionar dívida:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao adicionar dívida",
+        variant: "destructive"
+      });
     }
   };
 
@@ -93,9 +110,25 @@ export const useDividas = () => {
     if (!user) return;
 
     try {
+      // Garantir que os dados estão no formato correto e remover valor_restante das atualizações
+      const updates: any = {};
+      
+      if (dividaAtualizada.credor !== undefined) updates.credor = dividaAtualizada.credor;
+      if (dividaAtualizada.valor_total !== undefined) updates.valor_total = Number(dividaAtualizada.valor_total);
+      if (dividaAtualizada.valor_pago !== undefined) updates.valor_pago = Number(dividaAtualizada.valor_pago);
+      if (dividaAtualizada.data_inicio !== undefined) updates.data_inicio = dividaAtualizada.data_inicio;
+      if (dividaAtualizada.data_vencimento !== undefined) updates.data_vencimento = dividaAtualizada.data_vencimento || null;
+      if (dividaAtualizada.taxa_juros !== undefined) {
+        updates.taxa_juros = dividaAtualizada.taxa_juros ? Number(dividaAtualizada.taxa_juros) : null;
+      }
+      if (dividaAtualizada.status !== undefined) updates.status = dividaAtualizada.status;
+      if (dividaAtualizada.observacoes !== undefined) updates.observacoes = dividaAtualizada.observacoes || null;
+
+      console.log('Dados sendo atualizados:', updates);
+
       const { error } = await supabase
         .from('dividas')
-        .update(dividaAtualizada)
+        .update(updates)
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -110,7 +143,7 @@ export const useDividas = () => {
       }
 
       setDividas(prev => prev.map(divida => 
-        divida.id === id ? { ...divida, ...dividaAtualizada } : divida
+        divida.id === id ? { ...divida, ...updates } : divida
       ));
 
       toast({
@@ -119,6 +152,11 @@ export const useDividas = () => {
       });
     } catch (error) {
       console.error('Erro ao atualizar dívida:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao atualizar dívida",
+        variant: "destructive"
+      });
     }
   };
 

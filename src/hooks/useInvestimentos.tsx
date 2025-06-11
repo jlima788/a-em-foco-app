@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +15,14 @@ interface Investimento {
   rentabilidade_esperada?: number;
   observacoes?: string;
 }
+
+// Tipos permitidos conforme a constraint do banco
+export const TIPOS_INVESTIMENTO = [
+  'Renda Fixa',
+  'Ações', 
+  'Fundos',
+  'Criptomoedas'
+] as const;
 
 export const useInvestimentos = () => {
   const { user } = useAuth();
@@ -54,6 +63,16 @@ export const useInvestimentos = () => {
 
   const addInvestimento = async (novoInvestimento: Omit<Investimento, 'id'>) => {
     if (!user) return;
+
+    // Validar se o tipo está entre os permitidos
+    if (!TIPOS_INVESTIMENTO.includes(novoInvestimento.tipo as any)) {
+      toast({
+        title: "Erro",
+        description: "Tipo de investimento inválido. Use: Renda Fixa, Ações, Fundos ou Criptomoedas",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       // Garantir que os dados estão no formato correto
@@ -106,6 +125,16 @@ export const useInvestimentos = () => {
 
   const updateInvestimento = async (id: string, investimentoAtualizado: Partial<Investimento>) => {
     if (!user) return;
+
+    // Validar se o tipo está entre os permitidos (se foi passado)
+    if (investimentoAtualizado.tipo && !TIPOS_INVESTIMENTO.includes(investimentoAtualizado.tipo as any)) {
+      toast({
+        title: "Erro",
+        description: "Tipo de investimento inválido. Use: Renda Fixa, Ações, Fundos ou Criptomoedas",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       // Garantir que os dados estão no formato correto para atualização
@@ -200,6 +229,7 @@ export const useInvestimentos = () => {
     addInvestimento,
     updateInvestimento,
     deleteInvestimento,
-    refetch: fetchInvestimentos
+    refetch: fetchInvestimentos,
+    tiposPermitidos: TIPOS_INVESTIMENTO
   };
 };
