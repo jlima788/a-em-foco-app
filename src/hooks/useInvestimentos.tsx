@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,12 +56,24 @@ export const useInvestimentos = () => {
     if (!user) return;
 
     try {
+      // Garantir que os dados estão no formato correto
+      const investimentoData = {
+        user_id: user.id,
+        nome: novoInvestimento.nome,
+        tipo: novoInvestimento.tipo,
+        valor_investido: Number(novoInvestimento.valor_investido),
+        data_investimento: novoInvestimento.data_investimento,
+        rentabilidade_esperada: novoInvestimento.rentabilidade_esperada ? Number(novoInvestimento.rentabilidade_esperada) : null,
+        valor_atual: novoInvestimento.valor_atual ? Number(novoInvestimento.valor_atual) : null,
+        vencimento: novoInvestimento.vencimento || null,
+        observacoes: novoInvestimento.observacoes || null
+      };
+
+      console.log('Dados sendo enviados para o banco:', investimentoData);
+
       const { data, error } = await supabase
         .from('investimentos')
-        .insert({
-          user_id: user.id,
-          ...novoInvestimento
-        })
+        .insert(investimentoData)
         .select()
         .single();
 
@@ -85,6 +96,11 @@ export const useInvestimentos = () => {
       }
     } catch (error) {
       console.error('Erro ao adicionar investimento:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao adicionar investimento",
+        variant: "destructive"
+      });
     }
   };
 
@@ -92,9 +108,27 @@ export const useInvestimentos = () => {
     if (!user) return;
 
     try {
+      // Garantir que os dados estão no formato correto para atualização
+      const updates: any = {};
+      
+      if (investimentoAtualizado.nome !== undefined) updates.nome = investimentoAtualizado.nome;
+      if (investimentoAtualizado.tipo !== undefined) updates.tipo = investimentoAtualizado.tipo;
+      if (investimentoAtualizado.valor_investido !== undefined) updates.valor_investido = Number(investimentoAtualizado.valor_investido);
+      if (investimentoAtualizado.data_investimento !== undefined) updates.data_investimento = investimentoAtualizado.data_investimento;
+      if (investimentoAtualizado.rentabilidade_esperada !== undefined) {
+        updates.rentabilidade_esperada = investimentoAtualizado.rentabilidade_esperada ? Number(investimentoAtualizado.rentabilidade_esperada) : null;
+      }
+      if (investimentoAtualizado.valor_atual !== undefined) {
+        updates.valor_atual = investimentoAtualizado.valor_atual ? Number(investimentoAtualizado.valor_atual) : null;
+      }
+      if (investimentoAtualizado.vencimento !== undefined) updates.vencimento = investimentoAtualizado.vencimento || null;
+      if (investimentoAtualizado.observacoes !== undefined) updates.observacoes = investimentoAtualizado.observacoes || null;
+
+      console.log('Dados sendo atualizados:', updates);
+
       const { error } = await supabase
         .from('investimentos')
-        .update(investimentoAtualizado)
+        .update(updates)
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -109,7 +143,7 @@ export const useInvestimentos = () => {
       }
 
       setInvestimentos(prev => prev.map(investimento => 
-        investimento.id === id ? { ...investimento, ...investimentoAtualizado } : investimento
+        investimento.id === id ? { ...investimento, ...updates } : investimento
       ));
 
       toast({
@@ -118,6 +152,11 @@ export const useInvestimentos = () => {
       });
     } catch (error) {
       console.error('Erro ao atualizar investimento:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao atualizar investimento",
+        variant: "destructive"
+      });
     }
   };
 
