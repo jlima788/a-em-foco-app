@@ -47,7 +47,7 @@ serve(async (req) => {
       logStep("No existing customer found");
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const origin = req.headers.get("origin") || "http://localhost:8080";
     
     // Create one-time payment session using your specific price ID
     const session = await stripe.checkout.sessions.create({
@@ -55,11 +55,11 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1RWjWIQ1RuMnC1lk4IktubsK", // Using your specific price ID
+          price: "price_1Rdx6l08Z4a60e1Gq0BDM1IU", // Using your specific price ID
           quantity: 1,
         },
       ],
-      mode: "payment", // One-time payment
+      mode: "subscription", // One-time payment
       success_url: `${origin}/success`,
       cancel_url: `${origin}/`,
     });

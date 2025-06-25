@@ -58,20 +58,20 @@ export const useSubscription = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-payment', {
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
       if (error) {
-        console.error('Error checking payment:', error);
+        console.error('Error checking subscription:', error);
         setSubscriptionData({ subscribed: false });
       } else {
         setSubscriptionData(data);
       }
     } catch (error) {
-      console.error('Error checking payment:', error);
+      console.error('Error checking subscription:', error);
       setSubscriptionData({ subscribed: false });
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ export const useSubscription = () => {
     if (!user || !session) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado para fazer uma compra.",
+        description: "Você precisa estar logado para fazer uma assinatura.",
         variant: "destructive"
       });
       return;
@@ -105,7 +105,7 @@ export const useSubscription = () => {
       }
 
       // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
+      window.open(data.url);
     } catch (error) {
       toast({
         title: "Erro",
@@ -119,7 +119,7 @@ export const useSubscription = () => {
     if (!user || !session) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado para gerenciar seu pagamento.",
+        description: "Você precisa estar logado para gerenciar sua assinatura.",
         variant: "destructive"
       });
       return;

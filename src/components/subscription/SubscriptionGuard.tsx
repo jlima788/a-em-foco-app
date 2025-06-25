@@ -44,7 +44,7 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-white font-semibold mb-2">Acesso Premium - R$ 49,99</h3>
+              <h3 className="text-white font-semibold mb-2">Acesso Premium - R$ 19,90</h3>
               <ul className="text-gray-300 text-sm space-y-1">
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
@@ -73,7 +73,7 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
               onClick={createCheckout}
               className="w-full gradient-primary hover:opacity-90"
             >
-              Comprar Agora - R$ 49,99
+              Comprar Agora - R$ 19,90
             </Button>
           </CardContent>
         </Card>
